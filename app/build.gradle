@@ -1,0 +1,56 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+}
+
+def signingKeystore = System.getenv('TPCAPTURE_KEYSTORE_FILE')
+def signingStorePassword = System.getenv('TPCAPTURE_KEYSTORE_PASSWORD')
+def signingKeyAlias = System.getenv('TPCAPTURE_KEY_ALIAS') ?: 'tpcapture'
+def signingKeyPassword = System.getenv('TPCAPTURE_KEY_PASSWORD') ?: signingStorePassword
+def buildingRelease = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
+if (buildingRelease && (!signingKeystore || !signingStorePassword)) {
+    throw new GradleException('release 构建缺少签名配置：请设置 TPCAPTURE_KEYSTORE_FILE 与 TPCAPTURE_KEYSTORE_PASSWORD')
+}
+
+android {
+    namespace 'local.appcapture.viewer'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'local.appcapture.viewer'
+        minSdk 26
+        targetSdk 35
+        versionCode 39
+        versionName '0.39'
+    }
+    signingConfigs {
+        release {
+            if (signingKeystore && signingStorePassword) {
+                storeFile file(signingKeystore)
+                storePassword signingStorePassword
+                keyAlias signingKeyAlias
+                keyPassword signingKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    kotlinOptions { jvmTarget = '17' }
+    buildFeatures { compose true }
+}
+dependencies {
+    implementation files('libs/brotli-dec-0.1.2.jar', 'libs/androidsvg-1.4.jar')
+    implementation 'androidx.activity:activity-compose:1.10.1'
+    implementation 'org.jetbrains.compose.runtime:runtime:1.8.2'
+    implementation 'org.jetbrains.compose.ui:ui:1.8.2'
+    implementation 'org.jetbrains.compose.foundation:foundation:1.8.2'
+    implementation 'org.jetbrains.compose.material3:material3-window-size-class:1.8.2'
+    implementation 'top.yukonga.miuix.kmp:miuix-android:0.4.9'
+}

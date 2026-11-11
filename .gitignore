@@ -1,0 +1,31 @@
+# Go 后端编译产物（APK 使用的是 app/src/main/assets/backend.tar）
+backend/appcapture
+
+# 签名材料，绝不入库；CI 用 secret 注入
+keystore/
+*.jks
+*.keystore
+
+# Gradle / 构建产物
+.gradle/
+build/
+app/build/
+release/
+*.apk
+*.aab
+*.ap_
+*.hprof
+
+# Kotlin 会话缓存
+.kotlin/
+
+# 本机路径与 IDE 配置
+local.properties
+.idea/
+*.iml
+captures/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
