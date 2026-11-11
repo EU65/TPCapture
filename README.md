@@ -107,6 +107,14 @@ backend/        抓包后端源码（Go，TPROXY + MITM + MCP）
 autostart/      Magisk 开机自启动模块模板
 ```
 
+## 致谢与设计参考
+
+- **Box for Magisk / boxproxy**：透明代理规则的组织方式，UID 目标的分组与启停流程。
+- **mihomo**：按来源 UID 与进程识别流量的思路。
+- **Miuix**（`top.yukonga.miuix.kmp`）：重写编辑器的控件与视觉规范，规则编辑界面基于该组件库实现。
+
+内置的"泄漏证书"模式包含公开披露的受影响 CA 证书链，来源为 [mitmproxy PR #8500](https://github.com/mitmproxy/mitmproxy/pull/8500)。
+
 ## 作者
 
 GPT 6.1 Terra + DeepSeek V4.1 Flash
