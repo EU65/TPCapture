@@ -198,11 +198,11 @@ mcp_lock(){
 }
 case "${1:-}" in
  mcp-start)
-  [ -x "$BIN" ]||fail 'backend missing';port=${2:-18765};case "$port" in ''|*[!0-9]*)fail 'invalid MCP port';;esac;[ "$port" -ge 1024 ]&&[ "$port" -le 65535 ]||fail 'invalid MCP port';mcp_lock
-  if valid_mcp;then saved='';[ ! -f "$MCP/port" ]||IFS= read -r saved < "$MCP/port"||:;[ "$saved" = "$port" ]||fail 'MCP 已在其他端口运行，请先停止';echo "MCP_RUNNING port=$port pid=$mcpPid";exit 0;fi
-  rm -f "$MCP/server.pid";: > "$MCP/server.log";"$BIN" mcp-serve -dir "$DIR" -listen "127.0.0.1:$port" >> "$MCP/server.log" 2>&1 </dev/null & mcpPid=$!;printf '%s\n' "$mcpPid" > "$MCP/server.pid";printf '%s\n' "$port" > "$MCP/port";ready=0;n=0
+  [ -x "$BIN" ]||fail 'backend missing';port=${2:-18765};host=${3:-127.0.0.1};case "$host" in 127.0.0.1|0.0.0.0) ;; *) fail 'invalid MCP host';; esac;case "$port" in ''|*[!0-9]*)fail 'invalid MCP port';;esac;[ "$port" -ge 1024 ]&&[ "$port" -le 65535 ]||fail 'invalid MCP port';mcp_lock
+  if valid_mcp;then saved='';[ ! -f "$MCP/port" ]||IFS= read -r saved < "$MCP/port"||:;[ "$saved" = "$port" ]||fail 'MCP 已在其他端口运行，请先停止';echo "MCP_RUNNING port=$port host=$host pid=$mcpPid";exit 0;fi
+  rm -f "$MCP/server.pid";: > "$MCP/server.log";"$BIN" mcp-serve -dir "$DIR" -listen "$host:$port" >> "$MCP/server.log" 2>&1 </dev/null & mcpPid=$!;printf '%s\n' "$mcpPid" > "$MCP/server.pid";printf '%s\n' "$port" > "$MCP/port";ready=0;n=0
   while [ "$n" -lt 100 ];do if ! kill -0 "$mcpPid" 2>/dev/null;then break;fi;if grep -q 'MCP_READY listen=' "$MCP/server.log";then ready=1;break;fi;sleep 0.1;n=$((n+1));done
-  if [ "$ready" != 1 ];then kill "$mcpPid" 2>/dev/null||:;cat "$MCP/server.log" >&2;rm -f "$MCP/server.pid" "$MCP/port";fail 'MCP 启动失败';fi;echo "MCP_RUNNING port=$port pid=$mcpPid";;
+  if [ "$ready" != 1 ];then kill "$mcpPid" 2>/dev/null||:;cat "$MCP/server.log" >&2;rm -f "$MCP/server.pid" "$MCP/port";fail 'MCP 启动失败';fi;echo "MCP_RUNNING port=$port host=$host pid=$mcpPid";;
  mcp-stop)
   mcp_lock;if valid_mcp;then kill "$mcpPid" 2>/dev/null||:;n=0;while kill -0 "$mcpPid" 2>/dev/null;do state=$(awk '{print $3}' "/proc/$mcpPid/stat" 2>/dev/null||:);[ "$state" = Z ]&&break;[ "$n" -lt 100 ]||fail 'MCP 进程未退出';sleep 0.1;n=$((n+1));done;fi;rm -f "$MCP/server.pid" "$MCP/port";echo 'MCP_STOPPED';;
  mcp-status)
