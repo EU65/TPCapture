@@ -28,6 +28,7 @@ import (
 
 const defaultMCPPort = 18765
 const maxMCPBody = 256 * 1024
+const modernMCPVersion = "2026-07-28"
 
 var mcpMu sync.Mutex
 
@@ -609,7 +610,15 @@ func serveMCP(ctx context.Context, dir, listen string) error {
 		return e
 	}
 	srv := newMCPServer(dir)
-	handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return srv }, &mcp.StreamableHTTPOptions{JSONResponse: true, SessionTimeout: 10 * time.Minute})
+	getServer := func(*http.Request) *mcp.Server { return srv }
+	legacy := mcp.NewStreamableHTTPHandler(getServer, &mcp.StreamableHTTPOptions{
+		JSONResponse:   true,
+		SessionTimeout: 10 * time.Minute,
+	})
+	modern := mcp.NewStreamableHTTPHandler(getServer, &mcp.StreamableHTTPOptions{
+		JSONResponse: true,
+		Stateless:    true,
+	})
 	secured := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/mcp" {
 			http.NotFound(w, r)
@@ -640,7 +649,13 @@ func serveMCP(ctx context.Context, dir, listen string) error {
 			return
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
-		handler.ServeHTTP(w, r)
+		// Modern requests carry their protocol version on every POST. Legacy
+		// clients can omit it on initialize and use a session after the handshake.
+		if r.Header.Get("MCP-Protocol-Version") >= modernMCPVersion {
+			modern.ServeHTTP(w, r)
+			return
+		}
+		legacy.ServeHTTP(w, r)
 	})
 	ln, e := net.Listen("tcp4", listen)
 	if e != nil {
